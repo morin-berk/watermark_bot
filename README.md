@@ -12,8 +12,7 @@ You can change the watermark.
 
 __________________________________
 # Instruction
-Download the repository to your computer.
-In the bot.py file, replace the token with your own, recieved from the BotFather.
+Download the repository to your computer. Save your bot token to .env file.
 
 To build docker container use **docker-compose build --no-cache**.
 To run docker container **docker compose up** 
