@@ -10,7 +10,6 @@ A watermark occupies 7% of the total area and is located in the lower right corn
 
 You can change a watermark.
 
-__________________________________
 # Instruction
 Download the repository to your computer. Save your bot token to .env file.
 
