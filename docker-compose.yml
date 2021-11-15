@@ -1,0 +1,8 @@
+version: "3.7"
+services:
+  bot:
+    restart: on-failure
+    build: .
+    working_dir: /project
+    environment:
+    - TOKEN=${TOKEN}
