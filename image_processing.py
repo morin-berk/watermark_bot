@@ -1,6 +1,7 @@
 """Preprocess images with the pillow module, create watermarks."""
 import io
 from typing import Union
+
 from PIL import Image
 
 
@@ -28,21 +29,26 @@ async def prepare_base_image(
 
 
 async def create_watermark(base_img: Union[io.BytesIO, io.FileIO],
-                           watermark_image_path: str) -> io.BytesIO:
+                           watermark_image_path: str, size: int) -> io.BytesIO:
     """Takes prepared base_img, changes watermark size to 7% of
     a base_img.
     Place watermark to the right bottom corner of a base_img"""
     prep_base_img = await prepare_base_image(base_img)
     watermark = Image.open(watermark_image_path).convert('RGBA')
 
-    x_size, y_size = (int(prep_base_img.width * 0.07),
-                      int(prep_base_img.height * 0.07))
-    watermark.thumbnail((x_size, y_size), Image.ANTIALIAS)
+    base_img_w = prep_base_img.width
+    base_im_h = prep_base_img.height
+
+    watermark_w, watermark_h = (int(base_img_w * size * 0.01),
+                                int(base_im_h * size * 0.01))
+    watermark.thumbnail((watermark_w, watermark_h), Image.ANTIALIAS)
 
     # creating position, margin
-    x, y = (int(prep_base_img.width * 0.1),
-            int(prep_base_img.height * 0.1))
-    position = prep_base_img.width - x, prep_base_img.height - y
+    x_margin, y_margin = (int(watermark.width * 0.1),
+                          int(watermark.height * 0.1))
+
+    position = (int((base_img_w - watermark.width) - x_margin),
+                int((base_im_h - watermark.height) - y_margin))
     prep_base_img.paste(watermark, position, mask=watermark)
 
     return turn_into_io_base(prep_base_img)

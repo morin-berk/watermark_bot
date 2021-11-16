@@ -27,6 +27,7 @@ dp = Dispatcher(bot, storage=storage)
 
 class UserData(StatesGroup):
     watermark = State()
+    size = State()
     image = State()
     watermarked = State()
 
@@ -37,10 +38,10 @@ async def start_process(message: types.Message):
 
     await bot.send_message(
         chat_id, 'Hi.\n\nI receive a forwarded or '
-        'a direct message with images (and text if you want to), '
-        'put a watermark on them, and send you the message back.\n\n'
-        '/set_watermark to start. You can change a watermark '
-        'later with the same command.')
+                 'a direct message with images (and text if you want to), '
+                 'put a watermark on them, and send you the message back.\n\n'
+                 '/set_watermark to start. You can change a watermark '
+                 'later with the same command.')
 
 
 @dp.message_handler(commands=['set_watermark'], state='*')
@@ -61,17 +62,37 @@ async def process_watermark_invalid(message: types.Message):
 @dp.message_handler(content_types=ContentType.DOCUMENT,
                     state=UserData.watermark)
 async def process_watermark(message: types.Message, state: FSMContext):
-    chat_id = message.from_user.id
-
     async with state.proxy() as data:
-        data['chat_id'] = chat_id
         if 'watermark' in data:
             clean_photo_directory(data['watermark'])
         data['watermark'] = await save_img(
             message.document.file_id, bot)
 
     await UserData.next()
-    await bot.send_message(chat_id,
+    await bot.send_message(
+        message.from_user.id,
+        "Text the desired size of the picture in percent: "
+        "a number from 1 to 100 WITHOUT the percent sign. "
+        "\n\nFor example: 10")
+
+
+@dp.message_handler(lambda message: not message.text.isdigit(),
+                    state=UserData.size)
+async def size_invalid(message: types.Message):
+    return await message.reply(
+        "Please, try again. Text number, don`t send media.")
+
+
+@dp.message_handler(content_types=ContentType.TEXT, state=UserData.size)
+async def process_size(message: types.Message, state: FSMContext):
+    size = message.text
+    if int(size) < 1 or int(size) > 100:
+        return await message.reply(
+            "Please, try again. The number must be between 1 and 100.")
+    async with state.proxy() as data:
+        data['size'] = int(message.text)
+    await UserData.next()
+    await bot.send_message(message.from_user.id,
                            "Forward/send a message with images, "
                            "on which you want to put a watermark.")
 
@@ -105,13 +126,15 @@ async def put_watermark(message, state: FSMContext):
     photos = data['photo']
     text = data['message']
     watermark = data['watermark']
+    size = data['size']
 
     # creating watermarks
     watermarked_img = []
     for photo in photos:
         file_info = await bot.get_file(photo)
         img = await bot.download_file(file_info.file_path)
-        watermarked_img.append(await create_watermark(img, watermark))
+        watermarked_img.append(
+            await create_watermark(img, watermark, size))
 
     # creating MediaGroup
     media = MediaGroup()
